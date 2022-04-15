@@ -37,7 +37,7 @@ func NewClientSocketHandler() *ClientSocketHandler {
 			log.Printf("[*] CLient (unactivated) at %s disconnected\n", d.RemoteAddr())
 		}
 	})
-	s.HandleMessage(messages.MessageTransformer)
+	s.HandleMessageBinary(messages.MessageTransformer)
 
 	return &ClientSocketHandler{s, r}
 }

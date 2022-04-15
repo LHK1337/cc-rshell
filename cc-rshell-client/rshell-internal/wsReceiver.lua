@@ -1,15 +1,20 @@
-local URL = "localhost:8080"
-local RECONNECT_ATTEMPTS = 10
-local RECONNECT_TIMEOUT = 10
+local URL = "localhost:8080/clients/socket"
+local RECONNECT_ATTEMPTS = 1
+local RECONNECT_TIMEOUT = 3
+
+local mp = require("rshell-internal.MessagePack")
+local msgFactory = require("rshell-internal.messages")
 
 function dump(o)
     if type(o) == 'table' then
-       local s = '{ '
-       for k,v in pairs(o) do
-          if type(k) ~= 'number' then k = '"'..k..'"' end
-          s = s .. '['..k..'] = ' .. dump(v) .. ','
-       end
-       return s .. '} '
+        local s = '{ '
+        for k, v in pairs(o) do
+            if type(k) ~= 'number' then
+                k = '"' .. k .. '"'
+            end
+            s = s .. '[' .. k .. '] = ' .. dump(v) .. ','
+        end
+        return s .. '} '
     else
        return tostring(o)
     end
@@ -25,19 +30,27 @@ local _msgTypeHandler = {
         end
     end,
 
-    serverNotification = function (localTerm, msg)
+    serverNotification = function(localTerm, msg)
         if msg.message then
-           localTerm.print(string.format("[*] Server: %s", msg.message))
+            localTerm.print(string.format("[*] Server: %s", msg.message))
         else
             localTerm.print("[!] Received invalid serverNotification message.")
         end
     end
 }
 
+local function _activateConnection(ws)
+    local activateMessage = msgFactory.BuildActivateMessage()
+
+    local rawMP = mp.pack(activateMessage)
+    ws.send(rawMP, true)
+end
+
 local function _connectWebSocket(localTerm)
-    for i=0, RECONNECT_ATTEMPTS do
-        local ws = http.websocket("ws://"..URL)
+    for i = 0, RECONNECT_ATTEMPTS do
+        local ws = http.websocket("ws://" .. URL)
         if ws then
+            _activateConnection(ws)
             return ws
         end
 
@@ -48,10 +61,26 @@ local function _connectWebSocket(localTerm)
     error(string.format("unable to reach %s after %d trys.", URL, RECONNECT_ATTEMPTS))
 end
 
-local function _handleMessage(rawMessage, localTerm)
+local function _handleMessageJSON(rawMessage, localTerm)
     local msg, err = textutils.unserialiseJSON(rawMessage)
     if msg == nil then
         localTerm.print(string.format("[!] Received invalid JSON. Error: %s", err))
+    end
+
+    if msg.type then
+        if _msgTypeHandler[msg.type] == nil then
+            localTerm.print(string.format("[!] Received unsupported message type (%s).", msg.type))
+        else
+            _msgTypeHandler[msg.type](localTerm, msg)
+        end
+    end
+end
+
+local function _handleMessageMessagePack(rawMessage, localTerm)
+    local success, msg = pcall(mp.unpack, rawMessage)
+    if not success then
+        localTerm.print(string.format("[!] Received invalid MessagePack. Error: %s", msg))
+        return
     end
 
     if msg.type then
@@ -79,8 +108,10 @@ function WebSocketReceiver(localTerm)
                 break
             end
 
-            if not isBinary then
-                _handleMessage(msg, localTerm)
+            if isBinary then
+                _handleMessageMessagePack(msg, localTerm)
+            else
+                _handleMessageJSON(msg, localTerm)
             end
         end
     end

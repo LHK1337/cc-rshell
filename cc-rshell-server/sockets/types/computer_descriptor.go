@@ -6,7 +6,7 @@ import (
 )
 
 type ComputerID int
-type KeyCodesMap map[string]uint
+type KeyCodesMap map[string]interface{}
 
 type ComputerDescriptor interface {
 	// Init initializes new connections

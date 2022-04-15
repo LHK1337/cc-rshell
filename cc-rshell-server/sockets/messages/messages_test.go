@@ -33,7 +33,7 @@ func TestParseMessage(t *testing.T) {
 	_ = json.Unmarshal([]byte(testJSON), &raw)
 
 	var res testJSONStruct
-	err := parseJSONStruct(raw, &res)
+	err := parseDynamicStruct(raw, &res)
 	if !assert.NoError(t, err) {
 		t.FailNow()
 	}
@@ -67,7 +67,7 @@ func TestParseInvalidMessage(t *testing.T) {
 	_ = json.Unmarshal([]byte(testJSON_InvalidStruct), &raw)
 
 	var res testJSONStruct
-	err := parseJSONStruct(raw, &res)
+	err := parseDynamicStruct(raw, &res)
 	if !assert.Error(t, err) {
 		t.FailNow()
 	}

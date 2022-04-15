@@ -5,6 +5,7 @@
     "parallel",
     "textutils",
     "sleep",
-    "multishell"
+    "multishell",
+    "keys"
   ]
 }
