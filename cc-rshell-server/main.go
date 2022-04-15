@@ -4,7 +4,6 @@ import (
 	"cc-rshell-server/sockets"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
-	"gopkg.in/olahol/melody.v1"
 	"log"
 	"time"
 )
@@ -89,7 +88,7 @@ func main() {
 		}
 	}()
 
-	defer func(clients *melody.Melody) {
+	defer func(clients *sockets.ClientSocketHandler) {
 		_ = clients.Close()
 	}(clients)
 	log.Panicln(engine.Run())

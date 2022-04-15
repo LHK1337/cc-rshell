@@ -60,12 +60,19 @@ func MessageHandler(d types.ComputerDescriptor, msg gin.H) {
 	msgType, exists := msg["type"]
 	if !exists {
 		if d.Activated() {
-			log.Printf("[!] Received untyped message client (%d:'%s') at %s.\n",
+			log.Printf("[!] Received untyped message from client (%d:'%s') at %s.\n",
 				d.ComputerID(), d.ComputerLabel(), d.RemoteAddr())
 		} else {
-			log.Printf("[!] Received untyped message client at %s.\n", d.RemoteAddr())
+			log.Printf("[!] Received untyped message from client at %s.\n", d.RemoteAddr())
 		}
 		return
+	}
+
+	if d.Activated() {
+		log.Printf("[*] Received %s message from client (%d:'%s') at %s.\n",
+			msgType, d.ComputerID(), d.ComputerLabel(), d.RemoteAddr())
+	} else {
+		log.Printf("[*] Received %s message from client at %s.\n", msgType, d.RemoteAddr())
 	}
 
 	var err error

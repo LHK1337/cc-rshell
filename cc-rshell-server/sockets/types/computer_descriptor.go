@@ -49,6 +49,8 @@ const (
 
 type ComputerDescriptorImpl struct {
 	*melody.Session
+	// DO NOT PUT PROPERTIES HERE
+	// Store them in the Session with getValue() and setValue()
 }
 
 func (d *ComputerDescriptorImpl) Init() {
