@@ -49,7 +49,7 @@ func MessageTransformer(session *melody.Session, bytes []byte) {
 	var msg gin.H
 	err := json.Unmarshal(bytes, &msg)
 	if err != nil {
-		log.Println("[!] Received invalid JSON from client.")
+		log.Printf("[!] Received invalid JSON from client at %s.\n", session.Request.RemoteAddr)
 		return
 	}
 
@@ -59,7 +59,12 @@ func MessageTransformer(session *melody.Session, bytes []byte) {
 func MessageHandler(d types.ComputerDescriptor, msg gin.H) {
 	msgType, exists := msg["type"]
 	if !exists {
-		log.Println("[!] Received untyped message client.")
+		if d.Activated() {
+			log.Printf("[!] Received untyped message client (%d:'%s') at %s.\n",
+				d.ComputerID(), d.ComputerLabel(), d.RemoteAddr())
+		} else {
+			log.Printf("[!] Received untyped message client at %s.\n", d.RemoteAddr())
+		}
 		return
 	}
 
@@ -70,6 +75,12 @@ func MessageHandler(d types.ComputerDescriptor, msg gin.H) {
 	}
 
 	if err != nil {
+		if d.Activated() {
+			log.Printf("[!] Unable to handle %s message from client (%d:'%s') at %s.\n",
+				msgType, d.ComputerID(), d.ComputerLabel(), d.RemoteAddr())
+		} else {
+			log.Printf("[!] Unable to handle %s message from client at %s.\n", msgType, d.RemoteAddr())
+		}
 		log.Printf("[!] Unable to handle %s message.\n", msgType)
 		return
 	}

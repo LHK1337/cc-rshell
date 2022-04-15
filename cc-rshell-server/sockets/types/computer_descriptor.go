@@ -18,11 +18,13 @@ type ComputerDescriptor interface {
 	// ComputerID returns the ComputerCraft computer ID of the remote computer
 	// In the scope of a minecraft world is this ID unique
 	ComputerID() ComputerID
-	// KeyCodes returns the ComputerCraft keys table with key codes used in key events by the computer
-	KeyCodes() KeyCodesMap
 	// ComputerLabel returns the ComputerCraft computer label of the remote computer
 	// Might NOT be unique
 	ComputerLabel() string
+	// RemoteAddr returns the connection's remote address
+	RemoteAddr() string
+	// KeyCodes returns the ComputerCraft keys table with key codes used in key events by the computer
+	KeyCodes() KeyCodesMap
 	// ConnectedSince time when the connection was established
 	ConnectedSince() time.Time
 	// Close closes the connection
@@ -91,6 +93,10 @@ func (d *ComputerDescriptorImpl) ComputerID() ComputerID {
 	return getValue(d, computerIDKey, InvalidComputerID)
 }
 
+func (d *ComputerDescriptorImpl) RemoteAddr() string {
+	return d.Request.RemoteAddr
+}
+
 func (d *ComputerDescriptorImpl) KeyCodes() KeyCodesMap {
 	return getValue(d, computerKeyCodesKey, KeyCodesMap(nil))
 }
@@ -105,7 +111,11 @@ func (d *ComputerDescriptorImpl) ConnectedSince() time.Time {
 
 func (d *ComputerDescriptorImpl) Close() error {
 	setValue(d, computerActivatedKey, false)
-	return d.Session.Close()
+
+	// do not care if it is already closed
+	_ = d.Session.Close()
+
+	return nil
 }
 
 func getValue[T any](d *ComputerDescriptorImpl, key string, elseValue T) T {
