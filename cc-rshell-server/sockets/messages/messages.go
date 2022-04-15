@@ -56,6 +56,8 @@ const (
 )
 
 func MessageTransformer(session *melody.Session, bytes []byte) {
+	//d := types.WrapSession(session)
+
 	var msg gin.H
 	err := msgpack.Unmarshal(bytes, &msg)
 	if err != nil {

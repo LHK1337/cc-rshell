@@ -8,11 +8,11 @@ import (
 )
 
 type testJSONStruct struct {
-	Int      int                    `json:"int"`
-	Uint     uint                   `json:"uint"`
-	String   string                 `json:"string"`
-	Map      map[string]interface{} `json:"map"`
-	Ignored  string                 `json:"-"`
+	Int      int                    `json:"int" msgpack:"int"`
+	Uint     uint                   `json:"uint" msgpack:"uint"`
+	String   string                 `json:"string" msgpack:"string"`
+	Map      map[string]interface{} `json:"map" msgpack:"map"`
+	Ignored  string                 `json:"-" msgpack:"-"`
 	Ignored2 string
 }
 

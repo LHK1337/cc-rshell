@@ -32,7 +32,7 @@ func TestComputerDescriptorImpl_Activate(t *testing.T) {
 	}
 
 	d.Init()
-	d.Activate(42, "nasapc", map[string]uint{
+	d.Activate(42, "nasapc", map[string]interface{}{
 		"enter": 257,
 	})
 
@@ -40,7 +40,7 @@ func TestComputerDescriptorImpl_Activate(t *testing.T) {
 	assert.True(t, d.Activated())
 	assert.Equal(t, ComputerID(42), d.ComputerID())
 	assert.Equal(t, "nasapc", d.ComputerLabel())
-	assert.Equal(t, uint(257), d.KeyCodes()["enter"])
+	assert.Equal(t, 257, d.KeyCodes()["enter"])
 }
 
 type ComputerDescriptorImplMock struct {
