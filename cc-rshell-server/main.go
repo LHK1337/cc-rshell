@@ -1,19 +1,17 @@
 package main
 
 import (
+	"cc-rshell-server/sockets"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/olahol/melody.v1"
 	"log"
-	"net/http"
 	"time"
 )
 
 func main() {
 	engine := gin.Default()
-	clients := melody.New()
-	// TODO: better origin check
-	clients.Upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+	clients := sockets.NewClientSocketHandler()
 
 	engine.GET("/", func(c *gin.Context) {
 		err := clients.HandleRequest(c.Writer, c.Request)
@@ -21,6 +19,8 @@ func main() {
 			log.Panicln(err)
 		}
 	})
+
+	// TODO: initial handshake with key code exchange for 'key' and 'key_up' event
 
 	go func() {
 		for {
@@ -88,10 +88,6 @@ func main() {
 			time.Sleep(time.Second * 5)
 		}
 	}()
-
-	clients.HandleMessage(func(s *melody.Session, bytes []byte) {
-
-	})
 
 	defer func(clients *melody.Melody) {
 		_ = clients.Close()
