@@ -5,6 +5,14 @@ local RECONNECT_TIMEOUT = 3
 local mp = require("rshell-internal.MessagePack")
 local msgFactory = require("rshell-internal.messages")
 
+local MESSAGE_NOT_CHUNKED_BYTE = 0
+local MESSAGE_START_CHUNK_BYTE = 1
+local MESSAGE_CONTINNUE_CHUNK_BYTE = 2
+local MESSAGE_END_CHUNK_BYTE = 3
+
+-- 512 seems to be the bigest working value in ccemux
+local MAX_CHUNK_SIZE = 512 - 2 -- 2 bytes for header
+
 function dump(o)
     if type(o) == 'table' then
         local s = '{ '
@@ -41,13 +49,34 @@ local _msgTypeHandler = {
 
 local function _activateConnection(ws)
     local activateMessage = msgFactory.BuildActivateMessage()
-
     local rawMP = mp.pack(activateMessage)
-    ws.send(rawMP, true)
+
+    local bufID = 0
+
+    local chunks = {}
+    if #rawMP >= MAX_CHUNK_SIZE then
+        for i = 0, math.ceil(#rawMP / MAX_CHUNK_SIZE) - 1 do
+            if i == 0 then
+                chunks[i + 1] = string.char(MESSAGE_START_CHUNK_BYTE, bufID)
+            elseif i == math.ceil(#rawMP / MAX_CHUNK_SIZE) - 1 then
+                chunks[i + 1] = string.char(MESSAGE_END_CHUNK_BYTE, bufID)
+            else
+                chunks[i + 1] = string.char(MESSAGE_CONTINNUE_CHUNK_BYTE, bufID)
+            end
+
+            chunks[i + 1] = chunks[i + 1] .. string.sub(rawMP, i * MAX_CHUNK_SIZE + 1, (i + 1) * MAX_CHUNK_SIZE)
+        end
+    else
+        chunks[1] = string.char(MESSAGE_NOT_CHUNKED_BYTE) .. rawMP
+    end
+
+    for _, c in ipairs(chunks) do
+        ws.send(c, true)
+    end
 end
 
 local function _connectWebSocket(localTerm)
-    for i = 0, RECONNECT_ATTEMPTS do
+    for _ = 0, RECONNECT_ATTEMPTS do
         local ws = http.websocket("ws://" .. URL)
         if ws then
             _activateConnection(ws)

@@ -9,6 +9,7 @@ import (
 	"gopkg.in/olahol/melody.v1"
 	"log"
 	"reflect"
+	"time"
 )
 
 func parseDynamicStruct[T any](dynStruct gin.H, value *T) (err error) {
@@ -49,14 +50,97 @@ const (
 	// Messages can be chunked
 	// In that case the first byte indicate the buffer state and is followed by another byte containing the buffer id.
 	// Messages that are not chunked just start with a byte indicating that.
-	messageNotChunkedByte          int8 = 0x00
-	chunkedMessageStartByte        int8 = 0x01
-	chunkedMessageIntermediateByte int8 = 0x02
-	chunkedMessageEndByte          int8 = 0x03
+	messageNotChunkedByte          byte = 0x00
+	chunkedMessageStartByte        byte = 0x01
+	chunkedMessageIntermediateByte byte = 0x02
+	chunkedMessageEndByte          byte = 0x03
+
+	maxTotalBufferSizePerUser = 1 * 1024 * 1024 * 1024 // 1MB
 )
 
-func MessageTransformer(session *melody.Session, bytes []byte) {
-	//d := types.WrapSession(session)
+func MessageTransformer(session *melody.Session, bytes []byte, r types.ClientRegistry) {
+	if len(bytes) == 0 {
+		return
+	}
+
+	bufferState := bytes[0]
+	bytes = bytes[1:]
+	if bufferState != messageNotChunkedByte {
+		if len(bytes) == 0 {
+			return
+		}
+
+		bufferID := bytes[0]
+		bytes = bytes[1:]
+
+		d := types.WrapSession(session)
+		bm := d.MessageBufferMap()
+
+		totalBytes := 0
+		for _, buffer := range bm {
+			totalBytes += buffer.Buffer.Len()
+			if totalBytes > maxTotalBufferSizePerUser {
+				if d.Activated() {
+					log.Printf("[!] Client (%d:'%s') at %s exceeded its buffer for chunked messages. "+
+						"Disconnecting...\n", d.ComputerID(), d.ComputerLabel(), session.Request.RemoteAddr)
+				} else {
+					log.Printf("[!] Client at %s exceeded its buffer for chunked messages. Disconnecting...\n",
+						session.Request.RemoteAddr)
+				}
+
+				_ = d.Close()
+				return
+			}
+		}
+
+		switch bufferState {
+		case chunkedMessageStartByte:
+			b, exists := bm[bufferID]
+			if !exists {
+				b = types.NewTimedBuffer()
+				bm[bufferID] = b
+			}
+
+			b.Lock.Lock()
+			b.Buffer.Reset()
+			b.Buffer.Write(bytes)
+			b.LastModification = time.Now()
+			b.Lock.Unlock()
+
+			return
+		case chunkedMessageIntermediateByte:
+			b, exists := bm[bufferID]
+			if !exists {
+				log.Printf("[!] Client at %s tried to write to an nonexistent buffer.\n", session.Request.RemoteAddr)
+				return
+			}
+
+			b.Lock.Lock()
+			b.Buffer.Write(bytes)
+			b.LastModification = time.Now()
+			b.Lock.Unlock()
+
+			return
+		case chunkedMessageEndByte:
+			b, exists := bm[bufferID]
+			if !exists {
+				log.Printf("[!] Client at %s tried to write to an nonexistent buffer.\n", session.Request.RemoteAddr)
+				return
+			}
+
+			b.Lock.Lock()
+			b.Buffer.Write(bytes)
+			newBytes := make([]byte, b.Buffer.Len())
+			copy(newBytes, b.Buffer.Bytes())
+			bytes = newBytes
+			b.Buffer.Reset()
+			b.LastModification = time.Now()
+			b.Lock.Unlock()
+		default:
+			log.Printf("[!] Client at %s send an invalid buffer state.\n", session.Request.RemoteAddr)
+			return
+		}
+	}
 
 	var msg gin.H
 	err := msgpack.Unmarshal(bytes, &msg)
@@ -65,10 +149,10 @@ func MessageTransformer(session *melody.Session, bytes []byte) {
 		return
 	}
 
-	MessageHandler(types.WrapSession(session), msg)
+	MessageHandler(types.WrapSession(session), msg, r)
 }
 
-func MessageHandler(d types.ComputerDescriptor, msg gin.H) {
+func MessageHandler(d types.ComputerDescriptor, msg gin.H, r types.ClientRegistry) {
 	msgType, exists := msg["type"]
 	if !exists {
 		if d.Activated() {
@@ -91,6 +175,9 @@ func MessageHandler(d types.ComputerDescriptor, msg gin.H) {
 	switch msgType {
 	case "activate":
 		err = handleActivateMessage(d, msg)
+		if err == nil {
+			r[d.ComputerID()] = d
+		}
 	}
 
 	if err != nil {

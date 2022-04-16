@@ -18,8 +18,6 @@ func main() {
 		}
 	})
 
-	defer func(clients *sockets.ClientSocketHandler) {
-		_ = clients.Close()
-	}(clients)
+	defer clients.Close()
 	log.Panicln(engine.Run())
 }

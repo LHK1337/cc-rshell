@@ -4,14 +4,12 @@ local function BuildMessage(type, payload)
 end
 
 local function BuildActivateMessage()
-    local keyCodes = {
-        enter = 257
-    }
-    --for key, value in pairs(keys) do
-    --    if type(value) == "number" then
-    --        keyCodes[key] = value
-    --    end
-    --end
+    local keyCodes = {}
+    for key, value in pairs(keys) do
+        if type(value) == "number" then
+            keyCodes[key] = value
+        end
+    end
 
     local label = os.getComputerLabel()
     if label == nil then

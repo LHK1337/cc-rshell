@@ -7,6 +7,7 @@ import (
 
 type ComputerID int
 type KeyCodesMap map[string]interface{}
+type BufferMap map[byte]*TimedBuffer
 
 type ComputerDescriptor interface {
 	// Init initializes new connections
@@ -27,6 +28,8 @@ type ComputerDescriptor interface {
 	KeyCodes() KeyCodesMap
 	// ConnectedSince time when the connection was established
 	ConnectedSince() time.Time
+	// MessageBufferMap returns the buffer map of this connection
+	MessageBufferMap() BufferMap
 	// Close closes the connection
 	Close() error
 }
@@ -43,6 +46,7 @@ const (
 	computerIDKey        = "CLIENT_COMPUTER_ID"
 	computerLabelKey     = "CLIENT_COMPUTER_LABEL"
 	computerKeyCodesKey  = "CLIENT_COMPUTER_KEY_CODES"
+	computerBufferMapKey = "CLIENT_COMPUTER_BUFFER_MAP"
 	computerActivatedKey = "CLIENT_COMPUTER_ACTIVATED"
 	connectedSinceKey    = "CLIENT_COMPUTER_CONNECTED_SINCE"
 )
@@ -61,6 +65,7 @@ func (d *ComputerDescriptorImpl) Init() {
 func (d *ComputerDescriptorImpl) initTimeout(timout time.Duration, closeFunc func() error) {
 	setValue(d, connectedSinceKey, time.Now())
 	setValue(d, computerActivatedKey, false)
+	setValue(d, computerBufferMapKey, BufferMap{})
 
 	d.startActivationTimeout(timout, closeFunc)
 }
@@ -105,6 +110,10 @@ func (d *ComputerDescriptorImpl) KeyCodes() KeyCodesMap {
 
 func (d *ComputerDescriptorImpl) ComputerLabel() string {
 	return getValue(d, computerLabelKey, "")
+}
+
+func (d *ComputerDescriptorImpl) MessageBufferMap() BufferMap {
+	return getValue(d, computerBufferMapKey, BufferMap(nil))
 }
 
 func (d *ComputerDescriptorImpl) ConnectedSince() time.Time {
