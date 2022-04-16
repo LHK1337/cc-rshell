@@ -27,7 +27,7 @@ func NewClientSocketHandler() *ClientSocketHandler {
 	r := types.ClientRegistry{}
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go types.PurgeJob(ctx, time.NewTicker(PurgeInterval), r, BufferLifeTime)
+	go r.PurgeJob(ctx, time.NewTicker(PurgeInterval), BufferLifeTime)
 
 	// TODO: better origin check
 	s.Upgrader.CheckOrigin = func(r *http.Request) bool { return true }

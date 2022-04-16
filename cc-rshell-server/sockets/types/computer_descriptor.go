@@ -1,46 +1,34 @@
 package types
 
 import (
+	"cc-rshell-server/model"
 	"gopkg.in/olahol/melody.v1"
 	"time"
 )
-
-type ComputerID int
-type KeyCodesMap map[string]interface{}
-type BufferMap map[byte]*TimedBuffer
-
-type Blit string
-type CCColor struct {
-	Label     string `json:"label" msgpack:"label"`
-	ColorID   uint   `json:"colorID" msgpack:"colorID"`
-	ColorCode uint   `json:"colorCode" msgpack:"colorCode"`
-}
-
-type ColorPalette map[Blit]CCColor
 
 type ComputerDescriptor interface {
 	// Init initializes new connections
 	Init()
 	// Activate activates a connection with given information
-	Activate(id ComputerID, label string, keyCodes KeyCodesMap, colors ColorPalette)
+	Activate(id model.ComputerID, label string, keyCodes model.KeyCodesMap, colors model.ColorPalette)
 	// Activated returns true whether the connection is activated otherwise false
 	Activated() bool
 	// ComputerID returns the ComputerCraft computer ID of the remote computer
 	// In the scope of a minecraft world is this ID unique
-	ComputerID() ComputerID
+	ComputerID() model.ComputerID
 	// ComputerLabel returns the ComputerCraft computer label of the remote computer
 	// Might NOT be unique
 	ComputerLabel() string
 	// RemoteAddr returns the connection's remote address
 	RemoteAddr() string
 	// Colors returns the current color palette
-	Colors() ColorPalette
+	Colors() model.ColorPalette
 	// KeyCodes returns the ComputerCraft keys table with key codes used in key events by the computer
-	KeyCodes() KeyCodesMap
+	KeyCodes() model.KeyCodesMap
 	// ConnectedSince time when the connection was established
 	ConnectedSince() time.Time
 	// MessageBufferMap returns the buffer map of this connection
-	MessageBufferMap() BufferMap
+	MessageBufferMap() model.BufferMap
 	// Close closes the connection
 	Close() error
 }
@@ -52,7 +40,7 @@ func WrapSession(s *melody.Session) ComputerDescriptor {
 const (
 	SessionActivationTimeout = 10 * time.Second
 
-	InvalidComputerID ComputerID = -1
+	InvalidComputerID model.ComputerID = -1
 
 	computerIDKey        = "CLIENT_COMPUTER_ID"
 	computerLabelKey     = "CLIENT_COMPUTER_LABEL"
@@ -77,7 +65,7 @@ func (d *ComputerDescriptorImpl) Init() {
 func (d *ComputerDescriptorImpl) initTimeout(timout time.Duration, closeFunc func() error) {
 	setValue(d, connectedSinceKey, time.Now())
 	setValue(d, computerActivatedKey, false)
-	setValue(d, computerBufferMapKey, BufferMap{})
+	setValue(d, computerBufferMapKey, model.BufferMap{})
 
 	d.startActivationTimeout(timout, closeFunc)
 }
@@ -97,7 +85,7 @@ func (d *ComputerDescriptorImpl) startActivationTimeout(timout time.Duration, cl
 	}()
 }
 
-func (d *ComputerDescriptorImpl) Activate(id ComputerID, label string, keyCodes KeyCodesMap, colors ColorPalette) {
+func (d *ComputerDescriptorImpl) Activate(id model.ComputerID, label string, keyCodes model.KeyCodesMap, colors model.ColorPalette) {
 	setValue(d, computerIDKey, id)
 	setValue(d, computerLabelKey, label)
 	setValue(d, computerKeyCodesKey, keyCodes)
@@ -109,7 +97,7 @@ func (d *ComputerDescriptorImpl) Activated() bool {
 	return getValue(d, computerActivatedKey, false)
 }
 
-func (d *ComputerDescriptorImpl) ComputerID() ComputerID {
+func (d *ComputerDescriptorImpl) ComputerID() model.ComputerID {
 	return getValue(d, computerIDKey, InvalidComputerID)
 }
 
@@ -117,20 +105,20 @@ func (d *ComputerDescriptorImpl) RemoteAddr() string {
 	return d.Request.RemoteAddr
 }
 
-func (d *ComputerDescriptorImpl) KeyCodes() KeyCodesMap {
-	return getValue(d, computerKeyCodesKey, KeyCodesMap(nil))
+func (d *ComputerDescriptorImpl) KeyCodes() model.KeyCodesMap {
+	return getValue(d, computerKeyCodesKey, model.KeyCodesMap(nil))
 }
 
-func (d *ComputerDescriptorImpl) Colors() ColorPalette {
-	return getValue(d, computerColorsKey, ColorPalette(nil))
+func (d *ComputerDescriptorImpl) Colors() model.ColorPalette {
+	return getValue(d, computerColorsKey, model.ColorPalette(nil))
 }
 
 func (d *ComputerDescriptorImpl) ComputerLabel() string {
 	return getValue(d, computerLabelKey, "")
 }
 
-func (d *ComputerDescriptorImpl) MessageBufferMap() BufferMap {
-	return getValue(d, computerBufferMapKey, BufferMap(nil))
+func (d *ComputerDescriptorImpl) MessageBufferMap() model.BufferMap {
+	return getValue(d, computerBufferMapKey, model.BufferMap(nil))
 }
 
 func (d *ComputerDescriptorImpl) ConnectedSince() time.Time {

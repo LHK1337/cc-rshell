@@ -1,6 +1,7 @@
 package types
 
 import (
+	"cc-rshell-server/model"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/olahol/melody.v1"
 	"testing"
@@ -38,7 +39,7 @@ func TestComputerDescriptorImpl_Activate(t *testing.T) {
 
 	assert.NotZero(t, d.ConnectedSince())
 	assert.True(t, d.Activated())
-	assert.Equal(t, ComputerID(42), d.ComputerID())
+	assert.Equal(t, model.ComputerID(42), d.ComputerID())
 	assert.Equal(t, "nasapc", d.ComputerLabel())
 	assert.Equal(t, 257, d.KeyCodes()["enter"])
 }

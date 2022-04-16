@@ -1,16 +1,17 @@
 package messages
 
 import (
+	"cc-rshell-server/model"
 	"cc-rshell-server/sockets/types"
 	"github.com/vmihailenco/msgpack/v5"
 	"log"
 )
 
 type activateMessage struct {
-	Id       types.ComputerID   `json:"id" msgpack:"id"`
+	Id       model.ComputerID   `json:"id" msgpack:"id"`
 	Label    string             `json:"label" msgpack:"label"`
-	KeyCodes types.KeyCodesMap  `json:"keyCodes" msgpack:"keyCodes"`
-	Colors   types.ColorPalette `json:"colors" msgpack:"colors"`
+	KeyCodes model.KeyCodesMap  `json:"keyCodes" msgpack:"keyCodes"`
+	Colors   model.ColorPalette `json:"colors" msgpack:"colors"`
 }
 
 func handleActivateMessage(d types.ComputerDescriptor, msg []byte) error {

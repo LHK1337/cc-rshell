@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"cc-rshell-server/model"
 	"cc-rshell-server/sockets/types"
 	"github.com/vmihailenco/msgpack/v5"
 	"gopkg.in/olahol/melody.v1"
@@ -57,7 +58,7 @@ func MessageTransformer(session *melody.Session, bytes []byte, r types.ClientReg
 		case chunkedMessageStartByte:
 			b, exists := bm[bufID]
 			if !exists {
-				b = types.NewTimedBuffer()
+				b = model.NewTimedBuffer()
 				bm[bufID] = b
 			}
 
