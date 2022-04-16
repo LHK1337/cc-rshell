@@ -34,7 +34,7 @@ func TestComputerDescriptorImpl_Activate(t *testing.T) {
 	d.Init()
 	d.Activate(42, "nasapc", map[string]interface{}{
 		"enter": 257,
-	})
+	}, nil)
 
 	assert.NotZero(t, d.ConnectedSince())
 	assert.True(t, d.Activated())

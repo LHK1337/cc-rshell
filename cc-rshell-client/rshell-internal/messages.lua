@@ -3,11 +3,22 @@ local function BuildMessage(type, payload)
     return payload
 end
 
-local function BuildActivateMessage()
+local function BuildActivateMessage(localTerm)
     local keyCodes = {}
     for key, value in pairs(keys) do
         if type(value) == "number" then
             keyCodes[key] = value
+        end
+    end
+
+    local nativeColors = {}
+    for key, value in pairs(colors) do
+        if type(value) == "number" then
+            nativeColors[colors.toBlit(value)] = {
+                label = key,
+                colorID = value,
+                colorCode = colors.packRGB(localTerm.getPaletteColor(value))
+            }
         end
     end
 
@@ -19,7 +30,8 @@ local function BuildActivateMessage()
     local payload = {
         id = os.getComputerID(),
         label = label,
-        keyCodes = keyCodes
+        keyCodes = keyCodes,
+        colors = nativeColors,
     }
 
     return BuildMessage("activate", payload)

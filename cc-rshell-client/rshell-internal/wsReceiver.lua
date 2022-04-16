@@ -6,21 +6,6 @@ local mp = require("rshell-internal.MessagePack")
 local msgFactory = require("rshell-internal.messages")
 local utils = require("rshell-internal.utils")
 
-function dump(o)
-    if type(o) == 'table' then
-        local s = '{ '
-        for k, v in pairs(o) do
-            if type(k) ~= 'number' then
-                k = '"' .. k .. '"'
-            end
-            s = s .. '[' .. k .. '] = ' .. dump(v) .. ','
-        end
-        return s .. '} '
-    else
-       return tostring(o)
-    end
- end
-
 local _msgTypeHandler = {
     event = function (localTerm, msg)
         if msg.event and msg.params then
@@ -40,8 +25,8 @@ local _msgTypeHandler = {
     end
 }
 
-local function _activateConnection(ws)
-    local activateMessage = msgFactory.BuildActivateMessage()
+local function _activateConnection(ws, localTerm)
+    local activateMessage = msgFactory.BuildActivateMessage(localTerm)
     local rawMP = mp.pack(activateMessage)
     ws.send(rawMP, true)
 end
@@ -56,7 +41,7 @@ local function _connectWebSocket(localTerm)
                 utils.ws_chunkedSend(baseSend, data, isBinary)
             end
 
-            _activateConnection(ws)
+            _activateConnection(ws, localTerm)
 
             localTerm.print("[*] Connected and activated.")
             return ws

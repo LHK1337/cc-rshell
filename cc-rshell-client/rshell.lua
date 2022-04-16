@@ -7,6 +7,5 @@ localTerm["print"] = function (s)
     utils.termPrint(localTerm, s)
 end
 
-
 run.Runner(localTerm, "echo.lua")
 rec.WebSocketReceiver(localTerm)
