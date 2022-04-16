@@ -6,6 +6,7 @@
     "textutils",
     "sleep",
     "multishell",
-    "keys"
+    "keys",
+    "bit"
   ]
 }

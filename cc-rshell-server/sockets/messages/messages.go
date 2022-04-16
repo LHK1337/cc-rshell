@@ -47,9 +47,8 @@ func parseDynamicStruct[T any](dynStruct gin.H, value *T) (err error) {
 }
 
 const (
-	// Messages can be chunked
-	// In that case the first byte indicate the buffer state and is followed by another byte containing the buffer id.
-	// Messages that are not chunked just start with a byte indicating that.
+	// Messages have a chunk header byte and can be chunked
+	// The first two bits indicate the buffer op code and is followed by 6 bits containing the buffer id.
 	messageNotChunkedByte          byte = 0x00
 	chunkedMessageStartByte        byte = 0x01
 	chunkedMessageIntermediateByte byte = 0x02
@@ -63,15 +62,14 @@ func MessageTransformer(session *melody.Session, bytes []byte, r types.ClientReg
 		return
 	}
 
-	bufferState := bytes[0]
+	chunkHeader := bytes[0]
+	opCode := (chunkHeader & 0b11000000) >> 6
+	bufID := chunkHeader & 0b00111111
 	bytes = bytes[1:]
-	if bufferState != messageNotChunkedByte {
+	if opCode != messageNotChunkedByte {
 		if len(bytes) == 0 {
 			return
 		}
-
-		bufferID := bytes[0]
-		bytes = bytes[1:]
 
 		d := types.WrapSession(session)
 		bm := d.MessageBufferMap()
@@ -93,12 +91,12 @@ func MessageTransformer(session *melody.Session, bytes []byte, r types.ClientReg
 			}
 		}
 
-		switch bufferState {
+		switch opCode {
 		case chunkedMessageStartByte:
-			b, exists := bm[bufferID]
+			b, exists := bm[bufID]
 			if !exists {
 				b = types.NewTimedBuffer()
-				bm[bufferID] = b
+				bm[bufID] = b
 			}
 
 			b.Lock.Lock()
@@ -109,7 +107,7 @@ func MessageTransformer(session *melody.Session, bytes []byte, r types.ClientReg
 
 			return
 		case chunkedMessageIntermediateByte:
-			b, exists := bm[bufferID]
+			b, exists := bm[bufID]
 			if !exists {
 				log.Printf("[!] Client at %s tried to write to an nonexistent buffer.\n", session.Request.RemoteAddr)
 				return
@@ -122,7 +120,7 @@ func MessageTransformer(session *melody.Session, bytes []byte, r types.ClientReg
 
 			return
 		case chunkedMessageEndByte:
-			b, exists := bm[bufferID]
+			b, exists := bm[bufID]
 			if !exists {
 				log.Printf("[!] Client at %s tried to write to an nonexistent buffer.\n", session.Request.RemoteAddr)
 				return

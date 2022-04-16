@@ -5,33 +5,43 @@ local function termPrint(target, s)
     term.redirect(old)
 end
 
-local MESSAGE_NOT_CHUNKED_BYTE = 0
-local MESSAGE_START_CHUNK_BYTE = 1
-local MESSAGE_CONTINNUE_CHUNK_BYTE = 2
-local MESSAGE_END_CHUNK_BYTE = 3
+---{ Chunk header }---
+-- Size: 1 Byte
+---- 2 bits: OP_CODE
+---- 6 bits: BUFFER_ID
+local MAX_BUFFER_ID = 0x3F
+
+local CHUNK_OPCODE_NOT_CHUNKED = 0
+local CHUNK_OPCODE_START_CHUNK = 1
+local CHUNK_OPCODE_CONTINUE_CHUNK = 2
+local CHUNK_OPCODE_END_CHUNK = 3
 
 -- 512 seems to be the bigest working value in ccemux
-local MAX_CHUNK_SIZE = 512 - 2 -- 2 bytes for header
+local MAX_CHUNK_SIZE = 512 - 1 -- 1 bytes for header
 
+local CurrentBuferID = 0
 
 local function ws_chunkedSend(baseSend, data, isBinary)
-    local bufID = 0
+    local bufID = CurrentBuferID
+    CurrentBuferID = (CurrentBuferID + 1) % (MAX_BUFFER_ID + 1)
 
     local chunks = {}
     if #data >= MAX_CHUNK_SIZE then
         for i = 0, math.ceil(#data / MAX_CHUNK_SIZE) - 1 do
+            local opcode
             if i == 0 then
-                chunks[i + 1] = string.char(MESSAGE_START_CHUNK_BYTE, bufID)
+                opcode = CHUNK_OPCODE_START_CHUNK
             elseif i == math.ceil(#data / MAX_CHUNK_SIZE) - 1 then
-                chunks[i + 1] = string.char(MESSAGE_END_CHUNK_BYTE, bufID)
+                opcode = CHUNK_OPCODE_END_CHUNK
             else
-                chunks[i + 1] = string.char(MESSAGE_CONTINNUE_CHUNK_BYTE, bufID)
+                opcode = CHUNK_OPCODE_CONTINUE_CHUNK
             end
 
-            chunks[i + 1] = chunks[i + 1] .. string.sub(data, i * MAX_CHUNK_SIZE + 1, (i + 1) * MAX_CHUNK_SIZE)
+            local chunkHeader = bit.bor(bit.blshift(opcode, 6), bufID)
+            chunks[i + 1] = string.char(chunkHeader) .. string.sub(data, i * MAX_CHUNK_SIZE + 1, (i + 1) * MAX_CHUNK_SIZE)
         end
     else
-        chunks[1] = string.char(MESSAGE_NOT_CHUNKED_BYTE) .. data
+        chunks[1] = string.char(CHUNK_OPCODE_NOT_CHUNKED) .. data
     end
 
     for _, c in ipairs(chunks) do
