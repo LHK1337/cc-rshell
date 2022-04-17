@@ -37,6 +37,15 @@ local function BuildActivateMessage(localTerm)
     return BuildMessage("activate", payload)
 end
 
+local function BuildRPCMessage(id, name, params)
+    return BuildMessage("rpc", {
+        id = id,
+        name = name,
+        params = params
+    })
+end
+
 return {
-    BuildActivateMessage = BuildActivateMessage
+    BuildActivateMessage = BuildActivateMessage,
+    BuildRPCMessage = BuildRPCMessage
 }
