@@ -5,9 +5,10 @@ local RECONNECT_TIMEOUT = 3
 local mp = require("rshell-internal.MessagePack")
 local msgFactory = require("rshell-internal.messages")
 local utils = require("rshell-internal.utils")
+local socketSend = require("rshell-internal.socketSend")
 
 local _msgTypeHandler = {
-    event = function (localTerm, msg)
+    event = function(localTerm, msg)
         if msg.event and msg.params then
             localTerm.print(string.format("[*] Event: %s, [%s]", msg.event, dump(msg.params)))
             os.queueEvent(msg.event, table.unpack(msg.params))
@@ -85,19 +86,21 @@ local function _handleMessageMessagePack(rawMessage, localTerm)
     end
 end
 
-function WebSocketReceiver(localTerm)
-    if not http.checkURL("http://"..URL) then
+local function NewWebSocket(localTerm)
+    if not http.checkURL("http://" .. URL) then
         error(string.format("not allowed to connect %s.", URL))
     end
 
-    while true do
-        local ws = _connectWebSocket(localTerm)
+    return _connectWebSocket(localTerm)
+end
 
+local function WebSocketMainLoop(localTerm, ws)
+    local function rec()
         while true do
             local msg, isBinary = ws.receive()
 
             if msg == nil then
-                localTerm.print("[!] Lost connection. Reconnecting...")
+                localTerm.print("[!] Lost connection.")
                 break
             end
 
@@ -108,8 +111,21 @@ function WebSocketReceiver(localTerm)
             end
         end
     end
+
+    local function send()
+        while true do
+            local _, msg, isBinary, src = os.pullEvent(socketSend.WS_DISPATCH_MESSAGE)
+            if src ~= nil then
+                localTerm.print("[*] WebSocket Message dispatched by " .. src)
+            end
+            ws.send(msg, isBinary)
+        end
+    end
+
+    parallel.waitForAny(rec, send)
 end
 
 return {
-    WebSocketReceiver=WebSocketReceiver
+    NewWebSocket = NewWebSocket,
+    WebSocketMainLoop = WebSocketMainLoop,
 }

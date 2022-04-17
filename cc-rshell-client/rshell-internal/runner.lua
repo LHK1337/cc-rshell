@@ -1,8 +1,5 @@
-local redirect = require "rshell-internal.redirect"
-
-local function Runner(localTerm, program)
-    term.redirect(redirect.RShellTermRedirect(ws, localTerm))
-    multishell.setFocus(multishell.launch({}, program))
+local function Runner(localTerm, id, program, ...)
+    multishell.setFocus(multishell.launch(_ENV, "rshell-runner.lua", id, program, ...))
 end
 
 return {

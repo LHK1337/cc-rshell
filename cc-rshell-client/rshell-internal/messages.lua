@@ -37,15 +37,14 @@ local function BuildActivateMessage(localTerm)
     return BuildMessage("activate", payload)
 end
 
-local function BuildRPCMessage(id, name, params)
-    return BuildMessage("rpc", {
-        id = id,
-        name = name,
-        params = params
+local function BuildBufferUpdateMessage(procID, buffer)
+    return BuildMessage("framebuffer", {
+        procID = procID,
+        buffer = buffer,
     })
 end
 
 return {
     BuildActivateMessage = BuildActivateMessage,
-    BuildRPCMessage = BuildRPCMessage
+    BuildBufferUpdateMessage = BuildBufferUpdateMessage
 }
