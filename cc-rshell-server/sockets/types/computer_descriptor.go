@@ -35,6 +35,11 @@ type ComputerDescriptor interface {
 	FramebufferChannelMap() (channelMap map[int]chan *model.FrameBuffer)
 	// Close closes the connection
 	Close() error
+
+	// Write WebSocket Method
+	Write(msg []byte) error
+	// WriteBinary WebSocket Method
+	WriteBinary(msg []byte) error
 }
 
 func WrapSession(s *melody.Session) ComputerDescriptor {

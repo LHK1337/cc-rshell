@@ -2,6 +2,7 @@ package app
 
 import (
 	"cc-rshell-server/model"
+	"cc-rshell-server/sockets/messages"
 	"cc-rshell-server/sockets/types"
 	"context"
 	"github.com/briandowns/spinner"
@@ -68,6 +69,16 @@ func RunApp(screen tcell.Screen, d types.ComputerDescriptor, registry types.Clie
 		AddPage("loading", generateModal(loading, 40, 10), true, true).
 		AddPage("term", fbv, true, false)
 	app.SetRoot(pages, true)
+
+	app.SetInputCapture(func(e *tcell.EventKey) *tcell.EventKey {
+		for _, msg := range messages.MapToCCEvents(e, d.KeyCodes()) {
+			err := d.WriteBinary(msg)
+			if err != nil {
+				panic(err)
+			}
+		}
+		return e
+	})
 
 	go fbv.Worker()
 

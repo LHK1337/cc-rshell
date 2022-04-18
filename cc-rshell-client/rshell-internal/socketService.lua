@@ -10,7 +10,7 @@ local socketSend = require("rshell-internal.socketSend")
 local _msgTypeHandler = {
     event = function(localTerm, msg)
         if msg.event and msg.params then
-            localTerm.print(string.format("[*] Event: %s, [%s]", msg.event, dump(msg.params)))
+            localTerm.print(string.format("[*] Event: %s, [%s]", msg.event, utils.dump(msg.params)))
             os.queueEvent(msg.event, table.unpack(msg.params))
         else
             localTerm.print("[!] Received invalid event message.")
