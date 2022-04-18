@@ -37,9 +37,6 @@ func NewClientSocketHandler() *ClientSocketHandler {
 		d.Init()
 		log.Printf("[*] CLient connected from %s\n", d.RemoteAddr())
 	})
-	s.HandleClose(func(session *melody.Session, _ int, _ string) error {
-		return types.WrapSession(session).Close()
-	})
 	s.HandleDisconnect(func(session *melody.Session) {
 		d := types.WrapSession(session)
 		if d.Activated() {
@@ -48,6 +45,7 @@ func NewClientSocketHandler() *ClientSocketHandler {
 		} else {
 			log.Printf("[*] CLient (unactivated) at %s disconnected\n", d.RemoteAddr())
 		}
+		_ = types.WrapSession(session).Close()
 	})
 	s.HandleMessageBinary(func(session *melody.Session, bytes []byte) {
 		messages.MessageTransformer(session, bytes, r)

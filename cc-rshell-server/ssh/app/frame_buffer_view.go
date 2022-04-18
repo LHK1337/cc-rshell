@@ -22,9 +22,10 @@ type FrameBufferView struct {
 
 	firstDataCallback func()
 	requestDraw       func()
+	channelClosed     func()
 }
 
-func NewFramebufferView(ctx context.Context, fbChannel chan *model.FrameBuffer, getColors func() model.ColorPalette, firstDataCallback, requestDraw func()) *FrameBufferView {
+func NewFramebufferView(ctx context.Context, fbChannel chan *model.FrameBuffer, getColors func() model.ColorPalette, firstDataCallback, requestDraw, channelClosed func()) *FrameBufferView {
 	return &FrameBufferView{
 		Box:               tview.NewBox(),
 		ctx:               ctx,
@@ -33,6 +34,7 @@ func NewFramebufferView(ctx context.Context, fbChannel chan *model.FrameBuffer, 
 		firstDataCallback: firstDataCallback,
 		requestDraw:       requestDraw,
 		getColors:         getColors,
+		channelClosed:     channelClosed,
 	}
 }
 
@@ -78,7 +80,11 @@ func (v *FrameBufferView) Worker() {
 		select {
 		case <-v.ctx.Done():
 			return
-		case b := <-v.fbChannel:
+		case b, isOpen := <-v.fbChannel:
+			if !isOpen && v.channelClosed != nil {
+				v.channelClosed()
+			}
+
 			v.bufferLock.Lock()
 			v.localBuffer = b
 			v.bufferLock.Unlock()

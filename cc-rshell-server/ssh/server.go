@@ -40,6 +40,7 @@ func ListenAndServer(addr string, registry types.ClientRegistry) error {
 			if err != nil {
 				log.Printf("[!] Lost SSH connection to %s at %s.\n", s.User(), s.RemoteAddr())
 			}
+			_, _ = s.Write([]byte("Remote channel closed.\n"))
 		}
 
 		_ = s.Close()

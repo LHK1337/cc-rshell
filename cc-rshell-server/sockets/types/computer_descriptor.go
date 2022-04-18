@@ -157,7 +157,16 @@ func (d *ComputerDescriptorImpl) ConnectedSince() time.Time {
 }
 
 func (d *ComputerDescriptorImpl) Close() error {
-	d.state().Activated = false
+	state := d.state()
+	state.Activated = false
+	for _, fbChannel := range state.FramebufferChannelMap {
+		func() {
+			defer func() {
+				_ = recover()
+			}()
+			close(fbChannel)
+		}()
+	}
 
 	// do not care if it is already closed
 	_ = d.Session.Close()

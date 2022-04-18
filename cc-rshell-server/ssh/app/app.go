@@ -8,6 +8,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gliderlabs/ssh"
 	"github.com/rivo/tview"
+	"log"
 	"math/rand"
 )
 
@@ -18,6 +19,11 @@ var spinnerIDPool = []int{
 func RunApp(screen tcell.Screen, d types.ComputerDescriptor, registry types.ClientRegistry, name string, pubKey ssh.PublicKey) error {
 	appContext, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[!] SSH session connected to %d panicked. Reason: %v\n", d.ComputerID(), r)
+		}
+	}()
 
 	isAnon := name == ""
 	if isAnon {
@@ -52,7 +58,11 @@ func RunApp(screen tcell.Screen, d types.ComputerDescriptor, registry types.Clie
 		cancelAnimation()
 	}, func() {
 		app.Draw()
-	})
+	},
+		func() {
+			app.Stop()
+		},
+	)
 
 	pages.
 		AddPage("loading", generateModal(loading, 40, 10), true, true).
