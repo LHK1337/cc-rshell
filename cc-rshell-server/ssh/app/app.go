@@ -1,8 +1,9 @@
 package app
 
 import (
+	"cc-rshell-server/model"
 	"cc-rshell-server/sockets/types"
-	"fmt"
+	"context"
 	"github.com/briandowns/spinner"
 	"github.com/gdamore/tcell/v2"
 	"github.com/gliderlabs/ssh"
@@ -14,24 +15,16 @@ var spinnerIDPool = []int{
 	1, 14, 24, 27, 32, 43, 47, 50, 54, 57, 69, 78, 79, 80,
 }
 
-func RunApp(screen tcell.Screen, registry types.ClientRegistry, name string, pubKey ssh.PublicKey) error {
+func RunApp(screen tcell.Screen, d types.ComputerDescriptor, registry types.ClientRegistry, name string, pubKey ssh.PublicKey) error {
+	appContext, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	isAnon := name == ""
 	if isAnon {
 		name = "anonymous"
 	}
 
 	app := tview.NewApplication().SetScreen(screen)
-
-	txt := tview.NewTextView().SetDynamicColors(true)
-	txt.SetTitle(" Welcome stranger! ")
-	txt.SetText(fmt.Sprintf("\nIt appears you are [lime]%s[white].\nNice to meet you 👋", name)).
-		SetTextAlign(tview.AlignCenter).
-		SetDoneFunc(func(key tcell.Key) {
-			if key == tcell.KeyESC {
-				app.Stop()
-			}
-		}).
-		SetBorder(true)
 
 	spinnerSetID := spinnerIDPool[rand.Intn(len(spinnerIDPool))]
 	loading := &LoadingModal{TextView: tview.NewTextView(), spinnerCharSet: spinner.CharSets[spinnerSetID]}
@@ -43,14 +36,30 @@ func RunApp(screen tcell.Screen, registry types.ClientRegistry, name string, pub
 		SetBorder(true).
 		SetBorderPadding(2, 2, 2, 2)
 
-	app.SetRoot(tview.NewPages().
-		AddPage("loading", generateModal(loading, 40, 10), true, true).
-		AddPage("term", generateModal(txt, 50, 10), true, false),
-		true)
+	procID := 0
 
-	stopAnimation := make(chan struct{})
-	defer close(stopAnimation)
-	go Animate(stopAnimation, app)
+	fbChannel := make(chan *model.FrameBuffer)
+	registry[d.ComputerID()].RegisterFramebufferChannel(procID, fbChannel)
+
+	animateContext, cancelAnimation := context.WithCancel(appContext)
+	go Animate(animateContext, app)
+
+	pages := tview.NewPages()
+
+	fbv := NewFramebufferView(appContext, fbChannel, d.Colors, func() {
+		pages.HidePage("loading")
+		pages.ShowPage("term")
+		cancelAnimation()
+	}, func() {
+		app.Draw()
+	})
+
+	pages.
+		AddPage("loading", generateModal(loading, 40, 10), true, true).
+		AddPage("term", fbv, true, false)
+	app.SetRoot(pages, true)
+
+	go fbv.Worker()
 
 	return app.Run()
 }

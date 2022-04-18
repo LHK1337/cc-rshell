@@ -3,7 +3,6 @@ package types
 import (
 	"cc-rshell-server/model"
 	"gopkg.in/olahol/melody.v1"
-	"sync"
 	"time"
 )
 
@@ -31,7 +30,9 @@ type ComputerDescriptor interface {
 	// MessageBufferMap returns the buffer map of this connection
 	MessageBufferMap() model.BufferMap
 	// RegisterFramebufferChannel allows to register a channel to receive framebuffer changes
-	RegisterFramebufferChannel(framebufferChannel chan struct{})
+	RegisterFramebufferChannel(procID int, framebufferChannel chan *model.FrameBuffer)
+	// FramebufferChannelMap returns a map containing framebuffer channel for all procIDs on this computer
+	FramebufferChannelMap() (channelMap map[int]chan *model.FrameBuffer)
 	// Close closes the connection
 	Close() error
 }
@@ -55,15 +56,14 @@ type ComputerDescriptorImpl struct {
 }
 
 type computerState struct {
-	Activated              bool
-	ID                     model.ComputerID
-	Label                  string
-	KeyCodes               model.KeyCodesMap
-	Colors                 model.ColorPalette
-	FramebufferChannelLock sync.Mutex
-	FramebufferChannel     chan struct{}
-	MessageBufferMap       model.BufferMap
-	ConnectedSince         time.Time
+	Activated             bool
+	ID                    model.ComputerID
+	Label                 string
+	KeyCodes              model.KeyCodesMap
+	Colors                model.ColorPalette
+	FramebufferChannelMap map[int]chan *model.FrameBuffer
+	MessageBufferMap      model.BufferMap
+	ConnectedSince        time.Time
 }
 
 func (d *ComputerDescriptorImpl) Init() {
@@ -73,12 +73,11 @@ func (d *ComputerDescriptorImpl) Init() {
 // Helps in tests
 func (d *ComputerDescriptorImpl) initTimeout(timout time.Duration, closeFunc func() error) {
 	setValue(d, computerStateKey, &computerState{
-		ID:                     InvalidComputerID,
-		Activated:              false,
-		MessageBufferMap:       model.BufferMap{},
-		ConnectedSince:         time.Now(),
-		FramebufferChannelLock: sync.Mutex{},
-		FramebufferChannel:     nil,
+		ID:                    InvalidComputerID,
+		Activated:             false,
+		MessageBufferMap:      model.BufferMap{},
+		ConnectedSince:        time.Now(),
+		FramebufferChannelMap: map[int]chan *model.FrameBuffer{},
 	})
 
 	d.startActivationTimeout(timout, closeFunc)
@@ -99,18 +98,16 @@ func (d *ComputerDescriptorImpl) startActivationTimeout(timout time.Duration, cl
 	}()
 }
 
-func (d *ComputerDescriptorImpl) RegisterFramebufferChannel(framebufferChannel chan struct{}) {
+func (d *ComputerDescriptorImpl) RegisterFramebufferChannel(procID int, framebufferChannel chan *model.FrameBuffer) {
 	state := d.state()
-
-	{
-		state.FramebufferChannelLock.Lock()
-		defer state.FramebufferChannelLock.Unlock()
-
-		if state.FramebufferChannel != nil {
-			close(state.FramebufferChannel)
-		}
-		state.FramebufferChannel = framebufferChannel
+	if state.FramebufferChannelMap[procID] != nil {
+		close(state.FramebufferChannelMap[procID])
 	}
+	state.FramebufferChannelMap[procID] = framebufferChannel
+}
+
+func (d *ComputerDescriptorImpl) FramebufferChannelMap() (channelMap map[int]chan *model.FrameBuffer) {
+	return d.state().FramebufferChannelMap
 }
 
 func (d *ComputerDescriptorImpl) Activate(id model.ComputerID, label string, keyCodes model.KeyCodesMap, colors model.ColorPalette) {

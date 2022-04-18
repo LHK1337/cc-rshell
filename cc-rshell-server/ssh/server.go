@@ -36,7 +36,7 @@ func ListenAndServer(addr string, registry types.ClientRegistry) error {
 				panic(err)
 			}
 
-			err = app.RunApp(screen, registry, s.User(), s.PublicKey())
+			err = app.RunApp(screen, d, registry, s.User(), s.PublicKey())
 			if err != nil {
 				log.Printf("[!] Lost SSH connection to %s at %s.\n", s.User(), s.RemoteAddr())
 			}

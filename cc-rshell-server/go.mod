@@ -3,18 +3,19 @@ module cc-rshell-server
 go 1.18
 
 require (
+	github.com/briandowns/spinner v1.18.1
 	github.com/gdamore/tcell/v2 v2.5.1
 	github.com/gin-gonic/gin v1.7.7
 	github.com/gliderlabs/ssh v0.3.3
 	github.com/rivo/tview v0.0.0-20220307222120-9994674d60a8
 	github.com/stretchr/testify v1.6.1
 	github.com/vmihailenco/msgpack/v5 v5.3.5
+	golang.org/x/exp v0.0.0-20220414153411-bcd21879b8fd
 	gopkg.in/olahol/melody.v1 v1.0.0-20170518105555-d52139073376
 )
 
 require (
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
-	github.com/briandowns/spinner v1.18.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect

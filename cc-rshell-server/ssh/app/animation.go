@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"github.com/rivo/tview"
 	"sync"
 	"time"
@@ -8,8 +9,8 @@ import (
 
 var globalAnimationMutex = &sync.Mutex{}
 
-// Animate triggers the application to redraw every 50ms
-func Animate(stop <-chan struct{}, app *tview.Application) {
+// Animate triggers the application to redraw every 100ms
+func Animate(ctx context.Context, app *tview.Application) {
 	if !globalAnimationMutex.TryLock() {
 		return
 	}
@@ -17,7 +18,7 @@ func Animate(stop <-chan struct{}, app *tview.Application) {
 
 	for {
 		select {
-		case <-stop:
+		case <-ctx.Done():
 			return
 		default:
 			app.QueueUpdateDraw(func() {})
