@@ -2,8 +2,10 @@ package main
 
 import (
 	"cc-rshell-server/sockets"
+	"cc-rshell-server/ssh"
 	"github.com/gin-gonic/gin"
 	"log"
+	"sync"
 )
 
 func main() {
@@ -19,5 +21,17 @@ func main() {
 	})
 
 	defer clients.Close()
-	log.Panicln(engine.Run())
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		log.Panicln(engine.Run())
+	}()
+
+	go func() {
+		defer wg.Done()
+		log.Panicln(ssh.ListenAndServer("127.0.0.1:2222", clients.ClientRegistry))
+	}()
+
+	wg.Wait()
 }

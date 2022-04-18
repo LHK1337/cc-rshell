@@ -1,3 +1,5 @@
 /ccemux/
 /.idea
 /craftos/
+/cc-rshell-server/key.pem
+/cc-rshell-server/key.pem.pub

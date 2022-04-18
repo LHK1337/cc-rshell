@@ -3,6 +3,7 @@ package messages
 import (
 	"cc-rshell-server/model"
 	"cc-rshell-server/sockets/types"
+	"errors"
 	"github.com/vmihailenco/msgpack/v5"
 	"gopkg.in/olahol/melody.v1"
 	"log"
@@ -141,6 +142,10 @@ func MessageHandler(d types.ComputerDescriptor, msg []byte, r types.ClientRegist
 		if err == nil {
 			r[d.ComputerID()] = d
 		}
+	case "framebuffer":
+		err = handleFrameBufferMessage(d, msg)
+	default:
+		err = errors.New("unrecognized message type")
 	}
 
 	if err != nil {

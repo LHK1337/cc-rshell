@@ -3,6 +3,7 @@ package types
 import (
 	"cc-rshell-server/model"
 	"gopkg.in/olahol/melody.v1"
+	"sync"
 	"time"
 )
 
@@ -29,6 +30,8 @@ type ComputerDescriptor interface {
 	ConnectedSince() time.Time
 	// MessageBufferMap returns the buffer map of this connection
 	MessageBufferMap() model.BufferMap
+	// RegisterFramebufferChannel allows to register a channel to receive framebuffer changes
+	RegisterFramebufferChannel(framebufferChannel chan struct{})
 	// Close closes the connection
 	Close() error
 }
@@ -42,19 +45,25 @@ const (
 
 	InvalidComputerID model.ComputerID = -1
 
-	computerIDKey        = "CLIENT_COMPUTER_ID"
-	computerLabelKey     = "CLIENT_COMPUTER_LABEL"
-	computerKeyCodesKey  = "CLIENT_COMPUTER_KEY_CODES"
-	computerColorsKey    = "CLIENT_COMPUTER_COLORS"
-	computerBufferMapKey = "CLIENT_COMPUTER_BUFFER_MAP"
-	computerActivatedKey = "CLIENT_COMPUTER_ACTIVATED"
-	connectedSinceKey    = "CLIENT_COMPUTER_CONNECTED_SINCE"
+	computerStateKey = "CLIENT_COMPUTER_STATE"
 )
 
 type ComputerDescriptorImpl struct {
 	*melody.Session
 	// DO NOT PUT PROPERTIES HERE
-	// Store them in the Session with getValue() and setValue()
+	// Store them in the computerState
+}
+
+type computerState struct {
+	Activated              bool
+	ID                     model.ComputerID
+	Label                  string
+	KeyCodes               model.KeyCodesMap
+	Colors                 model.ColorPalette
+	FramebufferChannelLock sync.Mutex
+	FramebufferChannel     chan struct{}
+	MessageBufferMap       model.BufferMap
+	ConnectedSince         time.Time
 }
 
 func (d *ComputerDescriptorImpl) Init() {
@@ -63,9 +72,14 @@ func (d *ComputerDescriptorImpl) Init() {
 
 // Helps in tests
 func (d *ComputerDescriptorImpl) initTimeout(timout time.Duration, closeFunc func() error) {
-	setValue(d, connectedSinceKey, time.Now())
-	setValue(d, computerActivatedKey, false)
-	setValue(d, computerBufferMapKey, model.BufferMap{})
+	setValue(d, computerStateKey, &computerState{
+		ID:                     InvalidComputerID,
+		Activated:              false,
+		MessageBufferMap:       model.BufferMap{},
+		ConnectedSince:         time.Now(),
+		FramebufferChannelLock: sync.Mutex{},
+		FramebufferChannel:     nil,
+	})
 
 	d.startActivationTimeout(timout, closeFunc)
 }
@@ -85,20 +99,40 @@ func (d *ComputerDescriptorImpl) startActivationTimeout(timout time.Duration, cl
 	}()
 }
 
+func (d *ComputerDescriptorImpl) RegisterFramebufferChannel(framebufferChannel chan struct{}) {
+	state := d.state()
+
+	{
+		state.FramebufferChannelLock.Lock()
+		defer state.FramebufferChannelLock.Unlock()
+
+		if state.FramebufferChannel != nil {
+			close(state.FramebufferChannel)
+		}
+		state.FramebufferChannel = framebufferChannel
+	}
+}
+
 func (d *ComputerDescriptorImpl) Activate(id model.ComputerID, label string, keyCodes model.KeyCodesMap, colors model.ColorPalette) {
-	setValue(d, computerIDKey, id)
-	setValue(d, computerLabelKey, label)
-	setValue(d, computerKeyCodesKey, keyCodes)
-	setValue(d, computerColorsKey, colors)
-	setValue(d, computerActivatedKey, true)
+	state := d.state()
+	state.ID = id
+	state.Label = label
+	state.KeyCodes = keyCodes
+	state.Colors = colors
+	state.Activated = true
+}
+
+func (d *ComputerDescriptorImpl) state() *computerState {
+	var nullState computerState
+	return getValue(d, computerStateKey, &nullState)
 }
 
 func (d *ComputerDescriptorImpl) Activated() bool {
-	return getValue(d, computerActivatedKey, false)
+	return d.state().Activated
 }
 
 func (d *ComputerDescriptorImpl) ComputerID() model.ComputerID {
-	return getValue(d, computerIDKey, InvalidComputerID)
+	return d.state().ID
 }
 
 func (d *ComputerDescriptorImpl) RemoteAddr() string {
@@ -106,27 +140,27 @@ func (d *ComputerDescriptorImpl) RemoteAddr() string {
 }
 
 func (d *ComputerDescriptorImpl) KeyCodes() model.KeyCodesMap {
-	return getValue(d, computerKeyCodesKey, model.KeyCodesMap(nil))
+	return d.state().KeyCodes
 }
 
 func (d *ComputerDescriptorImpl) Colors() model.ColorPalette {
-	return getValue(d, computerColorsKey, model.ColorPalette(nil))
+	return d.state().Colors
 }
 
 func (d *ComputerDescriptorImpl) ComputerLabel() string {
-	return getValue(d, computerLabelKey, "")
+	return d.state().Label
 }
 
 func (d *ComputerDescriptorImpl) MessageBufferMap() model.BufferMap {
-	return getValue(d, computerBufferMapKey, model.BufferMap(nil))
+	return d.state().MessageBufferMap
 }
 
 func (d *ComputerDescriptorImpl) ConnectedSince() time.Time {
-	return getValue(d, connectedSinceKey, time.Time{})
+	return d.state().ConnectedSince
 }
 
 func (d *ComputerDescriptorImpl) Close() error {
-	setValue(d, computerActivatedKey, false)
+	d.state().Activated = false
 
 	// do not care if it is already closed
 	_ = d.Session.Close()
