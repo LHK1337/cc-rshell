@@ -11,6 +11,10 @@ local runner = require("rshell-internal.runner")
 local _msgTypeHandler = {
     event = function(localTerm, msg)
         if msg.event and msg.params then
+            if msg.procID then
+                runner.Focus(msg.procID)
+            end
+
             localTerm.print(string.format("[*] Event: %s, [%s]", msg.event, utils.dump(msg.params)))
             os.queueEvent(msg.event, table.unpack(msg.params))
         else
@@ -29,9 +33,9 @@ local _msgTypeHandler = {
     cmd = function(localTerm, msg)
         if msg.cmd and msg.procID then
             if msg.params and msg.params ~= nil then
-                runner.Runner(localTerm, msg.procID, msg.cmd, table.unpack(msg.params))
+                runner.Runner(msg.procID, msg.cmd, table.unpack(msg.params))
             else
-                runner.Runner(localTerm, msg.procID, msg.cmd)
+                runner.Runner(msg.procID, msg.cmd)
             end
         else
             localTerm.print("[!] Received invalid cmd message.")
@@ -107,8 +111,8 @@ local function NewWebSocket(localTerm)
     return _connectWebSocket(localTerm)
 end
 
-local function WebSocketMainLoop(localTerm, ws)
-    local function rec()
+local function ManagerMainLoop(localTerm, ws)
+    local function ws_rec()
         while true do
             local msg, isBinary = ws.receive()
 
@@ -125,7 +129,7 @@ local function WebSocketMainLoop(localTerm, ws)
         end
     end
 
-    local function send()
+    local function ws_send()
         while true do
             local _, msg, isBinary, src = os.pullEvent(socketSend.WS_DISPATCH_MESSAGE)
             if src ~= nil then
@@ -135,10 +139,19 @@ local function WebSocketMainLoop(localTerm, ws)
         end
     end
 
-    parallel.waitForAny(rec, send)
+    local function proctable()
+        while true do
+            local _, operation, procID = os.pullEvent("PROC_TABLE")
+            if operation == "close" then
+                runner.ProcTableRemove(procID)
+            end
+        end
+    end
+
+    parallel.waitForAny(ws_rec, ws_send, proctable)
 end
 
 return {
     NewWebSocket = NewWebSocket,
-    WebSocketMainLoop = WebSocketMainLoop,
+    WebSocketMainLoop = ManagerMainLoop,
 }

@@ -17,7 +17,7 @@ var spinnerIDPool = []int{
 	1, 14, 24, 27, 32, 43, 47, 50, 54, 57, 69, 78, 79, 80,
 }
 
-func RunApp(screen tcell.Screen, d types.ComputerDescriptor, registry types.ClientRegistry, name string, pubKey ssh.PublicKey) error {
+func RunApp(screen tcell.Screen, d types.ComputerDescriptor, procID int, registry types.ClientRegistry, name string, pubKey ssh.PublicKey) error {
 	appContext, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	defer func() {
@@ -42,8 +42,6 @@ func RunApp(screen tcell.Screen, d types.ComputerDescriptor, registry types.Clie
 		SetTextAlign(tview.AlignCenter).
 		SetBorder(true).
 		SetBorderPadding(2, 2, 2, 2)
-
-	procID := int(rand.Uint32())
 
 	fbChannel := make(chan *model.FrameBuffer)
 	registry[d.ComputerID()].RegisterFramebufferChannel(procID, fbChannel)
@@ -71,7 +69,7 @@ func RunApp(screen tcell.Screen, d types.ComputerDescriptor, registry types.Clie
 	app.SetRoot(pages, true)
 
 	app.SetInputCapture(func(e *tcell.EventKey) *tcell.EventKey {
-		for _, msg := range messages.MapToCCEvents(e, d.KeyCodes()) {
+		for _, msg := range messages.MapToCCEvents(procID, e, d.KeyCodes()) {
 			err := d.WriteBinary(msg)
 			if err != nil {
 				panic(err)

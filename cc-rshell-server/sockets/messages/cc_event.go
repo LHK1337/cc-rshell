@@ -7,25 +7,30 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-func BuildEventMessage(event string, params ...interface{}) []byte {
-	bytes, _ := msgpack.Marshal(gin.H{
+func BuildEventMessage(event string, procID *int, params ...interface{}) []byte {
+	msg := gin.H{
 		"type":   "event",
 		"event":  event,
 		"params": params,
-	})
+	}
+	if procID != nil {
+		msg["procID"] = *procID
+	}
+
+	bytes, _ := msgpack.Marshal(msg)
 	return bytes
 }
 
-func MapToCCEvents(e *tcell.EventKey, keys model.KeyCodesMap) (messages [][]byte) {
+func MapToCCEvents(procID int, e *tcell.EventKey, keys model.KeyCodesMap) (messages [][]byte) {
 	if e.Key() == tcell.KeyRune {
-		return [][]byte{BuildEventMessage("char", string(e.Rune()))}
+		return [][]byte{BuildEventMessage("char", &procID, string(e.Rune()))}
 	}
 
 	var keyUpStack [][]byte
 
 	setKey := func(k interface{}) {
-		messages = append(messages, BuildEventMessage("key", k, false))
-		keyUpStack = append(keyUpStack, BuildEventMessage("key_up", k))
+		messages = append(messages, BuildEventMessage("key", &procID, k, false))
+		keyUpStack = append(keyUpStack, BuildEventMessage("key_up", &procID, k))
 	}
 
 	if e.Modifiers()&tcell.ModCtrl > 0 {
