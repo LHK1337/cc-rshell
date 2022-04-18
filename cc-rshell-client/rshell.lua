@@ -9,10 +9,7 @@ localTerm["print"] = function(s)
     utils.termPrint(localTerm, s)
 end
 
-local procID = 0
-
 while true do
     local ws = socketService.NewWebSocket(localTerm)
-    run.Runner(localTerm, procID, "shell")
     socketService.WebSocketMainLoop(localTerm, ws)
 end

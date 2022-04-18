@@ -43,7 +43,7 @@ func RunApp(screen tcell.Screen, d types.ComputerDescriptor, registry types.Clie
 		SetBorder(true).
 		SetBorderPadding(2, 2, 2, 2)
 
-	procID := 0
+	procID := int(rand.Uint32())
 
 	fbChannel := make(chan *model.FrameBuffer)
 	registry[d.ComputerID()].RegisterFramebufferChannel(procID, fbChannel)
@@ -81,6 +81,15 @@ func RunApp(screen tcell.Screen, d types.ComputerDescriptor, registry types.Clie
 	})
 
 	go fbv.Worker()
+
+	// start new shell on remote machine
+	go func() {
+		err := d.WriteBinary(messages.BuildCommandMessage(procID, "shell"))
+		if err != nil {
+			log.Printf("[!] Unable to run new shell on %d:%s.\n", d.ComputerID(), d.ComputerLabel())
+			app.Stop()
+		}
+	}()
 
 	return app.Run()
 }

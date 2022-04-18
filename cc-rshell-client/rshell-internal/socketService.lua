@@ -6,6 +6,7 @@ local mp = require("rshell-internal.MessagePack")
 local msgFactory = require("rshell-internal.messages")
 local utils = require("rshell-internal.utils")
 local socketSend = require("rshell-internal.socketSend")
+local runner = require("rshell-internal.runner")
 
 local _msgTypeHandler = {
     event = function(localTerm, msg)
@@ -22,6 +23,18 @@ local _msgTypeHandler = {
             localTerm.print(string.format("[*] Server: %s", msg.message))
         else
             localTerm.print("[!] Received invalid serverNotification message.")
+        end
+    end,
+
+    cmd = function(localTerm, msg)
+        if msg.cmd and msg.procID then
+            if msg.params and msg.params ~= nil then
+                runner.Runner(localTerm, msg.procID, msg.cmd, table.unpack(msg.params))
+            else
+                runner.Runner(localTerm, msg.procID, msg.cmd)
+            end
+        else
+            localTerm.print("[!] Received invalid cmd message.")
         end
     end
 }
