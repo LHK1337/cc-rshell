@@ -38,13 +38,20 @@ local function BuildActivateMessage(localTerm)
 end
 
 local function BuildBufferUpdateMessage(procID, buffer)
-    return BuildMessage("framebuffer", {
+    return BuildMessage("framebuffer_update", {
         procID = procID,
         buffer = buffer,
     })
 end
 
+local function BuildBufferClosedMessage(procID)
+    return BuildMessage("framebuffer_closed", {
+        procID = procID,
+    })
+end
+
 return {
     BuildActivateMessage = BuildActivateMessage,
-    BuildBufferUpdateMessage = BuildBufferUpdateMessage
+    BuildBufferUpdateMessage = BuildBufferUpdateMessage,
+    BuildBufferClosedMessage = BuildBufferClosedMessage,
 }

@@ -142,8 +142,10 @@ func MessageHandler(d types.ComputerDescriptor, msg []byte, r types.ClientRegist
 		if err == nil {
 			r[d.ComputerID()] = d
 		}
-	case "framebuffer":
-		err = handleFrameBufferMessage(d, msg)
+	case "framebuffer_update":
+		err = handleFrameBufferUpdateMessage(d, msg)
+	case "framebuffer_closed":
+		err = handleFrameBufferClosedMessage(d, msg)
 	default:
 		err = errors.New("unrecognized message type")
 	}

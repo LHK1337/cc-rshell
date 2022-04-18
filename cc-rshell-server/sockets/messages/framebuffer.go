@@ -6,16 +6,16 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-type framebufferPayload struct {
+type framebufferUpdatePayload struct {
 	ProcID int `json:"procID" msgpack:"procID"`
 
 	Buffer model.FrameBuffer `json:"buffer" msgpack:"buffer"`
 }
 
-func handleFrameBufferMessage(d types.ComputerDescriptor, msg []byte) error {
+func handleFrameBufferUpdateMessage(d types.ComputerDescriptor, msg []byte) error {
 	channelMap := d.FramebufferChannelMap()
 
-	var fb framebufferPayload
+	var fb framebufferUpdatePayload
 	err := msgpack.Unmarshal(msg, &fb)
 	if err != nil {
 		return err
@@ -32,6 +32,34 @@ func handleFrameBufferMessage(d types.ComputerDescriptor, msg []byte) error {
 			}()
 
 			channel <- &fb.Buffer
+		}()
+	}
+
+	return nil
+}
+
+type framebufferClosedPayload struct {
+	ProcID int `json:"procID" msgpack:"procID"`
+}
+
+func handleFrameBufferClosedMessage(d types.ComputerDescriptor, msg []byte) error {
+	channelMap := d.FramebufferChannelMap()
+
+	var fb framebufferClosedPayload
+	err := msgpack.Unmarshal(msg, &fb)
+	if err != nil {
+		return err
+	}
+
+	if channel, exists := channelMap[fb.ProcID]; exists && channel != nil {
+		func() {
+			defer func() {
+				// we do not care here
+				_ = recover()
+			}()
+
+			delete(channelMap, fb.ProcID)
+			close(channel)
 		}()
 	}
 
