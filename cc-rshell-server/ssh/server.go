@@ -2,6 +2,7 @@ package ssh
 
 import (
 	"cc-rshell-server/model"
+	"cc-rshell-server/sockets/messages"
 	"cc-rshell-server/sockets/types"
 	"cc-rshell-server/ssh/app"
 	sshScreen "cc-rshell-server/ssh/screen"
@@ -42,6 +43,7 @@ func ListenAndServer(addr string, registry types.ClientRegistry) error {
 			if err != nil {
 				log.Printf("[!] Lost SSH connection to %s at %s.\n", s.User(), s.RemoteAddr())
 			}
+			_ = d.WriteBinary(messages.BuildEventMessage("terminate", &procID, nil))
 			_, _ = s.Write([]byte("Remote channel closed.\n"))
 		}
 

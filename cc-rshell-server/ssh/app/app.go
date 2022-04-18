@@ -82,7 +82,10 @@ func RunApp(screen tcell.Screen, d types.ComputerDescriptor, procID int, registr
 
 	// start new shell on remote machine
 	go func() {
-		err := d.WriteBinary(messages.BuildCommandMessage(procID, "shell"))
+		app.ResizeToFullScreen(fbv)
+
+		x, y, w, h := fbv.GetInnerRect()
+		err := d.WriteBinary(messages.BuildCommandMessage(procID, w-x, h-y, "shell"))
 		if err != nil {
 			log.Printf("[!] Unable to run new shell on %d:%s.\n", d.ComputerID(), d.ComputerLabel())
 			app.Stop()

@@ -12,10 +12,14 @@ local _msgTypeHandler = {
     event = function(localTerm, msg)
         if msg.event and msg.params then
             if msg.procID then
-                runner.Focus(msg.procID)
+                --localTerm.print(string.format("[*] Event: %s for %d. [%s]", msg.event, msg.procID, utils.dump(msg.params)))
+                if not runner.Focus(msg.procID) then
+                    return
+                end
+            else
+                --localTerm.print(string.format("[*] Event: %s. [%s]", msg.event, utils.dump(msg.params)))
             end
 
-            localTerm.print(string.format("[*] Event: %s, [%s]", msg.event, utils.dump(msg.params)))
             os.queueEvent(msg.event, table.unpack(msg.params))
         else
             localTerm.print("[!] Received invalid event message.")
@@ -32,10 +36,22 @@ local _msgTypeHandler = {
 
     cmd = function(localTerm, msg)
         if msg.cmd and msg.procID then
+            localTerm.print(string.format("[*] Run %s (%d).", msg.cmd, msg.procID))
+
+            local w, h = -1, -1
+
+            if msg.bufW then
+                w = msg.bufW
+            end
+
+            if msg.bufH then
+                h = msg.bufH
+            end
+
             if msg.params and msg.params ~= nil then
-                runner.Runner(msg.procID, msg.cmd, table.unpack(msg.params))
+                runner.Runner(msg.procID, w, h, msg.cmd, table.unpack(msg.params))
             else
-                runner.Runner(msg.procID, msg.cmd)
+                runner.Runner(msg.procID, w, h, msg.cmd)
             end
         else
             localTerm.print("[!] Received invalid cmd message.")
@@ -133,7 +149,7 @@ local function ManagerMainLoop(localTerm, ws)
         while true do
             local _, msg, isBinary, src = os.pullEvent(socketSend.WS_DISPATCH_MESSAGE)
             if src ~= nil then
-                localTerm.print("[*] WebSocket Message dispatched by " .. src)
+                --localTerm.print("[*] WebSocket Message dispatched by " .. src)
             end
             ws.send(msg, isBinary)
         end
@@ -143,6 +159,7 @@ local function ManagerMainLoop(localTerm, ws)
         while true do
             local _, operation, procID = os.pullEvent("PROC_TABLE")
             if operation == "close" then
+                localTerm.print(string.format("[*] Process %d exited.", procID))
                 runner.ProcTableRemove(procID)
             end
         end

@@ -14,8 +14,8 @@ local function ProcTableRemove(procID)
     procTable[procID] = nil
 end
 
-local function Runner(procID, program, ...)
-    local msID = multishell.launch(_ENV, "rshell-runner.lua", procID, program, ...)
+local function Runner(procID, bufH, bufW, program, ...)
+    local msID = multishell.launch(_ENV, "rshell-runner.lua", procID, bufH, bufW, program, ...)
     multishell.setFocus(msID)
     ProcTableAdd(procID, msID)
 end
@@ -23,7 +23,9 @@ end
 local function Focus(procID)
     if procTable[procID] then
         multishell.setFocus(procTable[procID])
+        return true
     end
+    return false
 end
 
 return {
