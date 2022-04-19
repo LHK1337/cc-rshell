@@ -52,7 +52,7 @@ Everything except things that do not and things I did not encounter.
 - Dynamic shell resizing
 - Mouse input
 
-### 🤫 Absurd shenanigans 🤫
+## 🤫 Absurd shenanigans 🤫
 
 ##### RMTS™ (Rapid Multishell Tab Switching)
 
