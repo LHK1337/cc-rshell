@@ -7,6 +7,8 @@
 A gateway between our universe and a minecraft world of your choice to access your
 [ComputerCraft](https://github.com/cc-tweaked/CC-Tweaked) Computer's shell via SSH.
 
+![alt quick demo gif](.img/hello-world.gif)
+
 ## Why?
 
 Why not?
