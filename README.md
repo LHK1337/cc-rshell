@@ -66,9 +66,11 @@ Imagine a world where web socket messages are limited by 512 bytes...
 
 # 💛 Special thanks to 💛
 
-- @cc-tweaked, @dan200 and all contributors for this amazing minecraft mod
-- @markstinson and @fperrad for implementing messagepack in lua
-- @Lyqyd for the framebuffer api
-- @gliderlabs for their handy ssh library
-- @Gin-Gonic because gin is awesome
-- @CCEmuX for their emulator
+- [@cc-tweaked](https://github.com/cc-tweaked), [@dan200](https://github.com/dan200) and all contributors for this
+  amazing minecraft mod
+- [@markstinson](https://github.com/markstinson) and [@fperrad](https://github.com/fperrad) for implementing messagepack
+  in lua
+- [@Lyqyd](https://github.com/Lyqyd) for the framebuffer api
+- [@gliderlabs](https://github.com/gliderlabs) for their handy ssh library
+- [@Gin-Gonic](https://github.com/Gin-Gonic) because gin is awesome
+- [@CCEmuX](https://github.com/CCEmuX) for their emulator
