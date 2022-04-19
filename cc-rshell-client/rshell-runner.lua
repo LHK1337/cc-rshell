@@ -17,8 +17,6 @@ end
 
 local w, h = term.getSize()
 
-print(w, h)
-
 if bufW > 0 then
     w = bufW
 end
@@ -26,8 +24,6 @@ end
 if bufH > 0 then
     h = bufH
 end
-
-print(w, h)
 
 local fb = framebuffer.New(w, h, true, 0, 0, function(buffer, src)
     socketSend.DispatchWebsocketMessage(mp.pack(messages.BuildBufferUpdateMessage(id, buffer)), true, src)

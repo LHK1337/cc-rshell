@@ -1,6 +1,6 @@
 local URL = "localhost:8080/clients/socket"
-local RECONNECT_ATTEMPTS = 1
-local RECONNECT_TIMEOUT = 3
+local RECONNECT_ATTEMPTS = 10
+local RECONNECT_TIMEOUT = 5
 
 local mp = require("rshell-internal.MessagePack")
 local msgFactory = require("rshell-internal.messages")

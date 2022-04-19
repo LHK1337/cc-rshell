@@ -1,10 +1,3 @@
-local function termPrint(target, s)
-    local old = term.current()
-    term.redirect(target)
-    print(s)
-    term.redirect(old)
-end
-
 ---{ Chunk header }---
 -- Size: 1 Byte
 ---- 2 bits: OP_CODE
@@ -19,11 +12,11 @@ local CHUNK_OPCODE_END_CHUNK = 3
 -- 512 seems to be the bigest working value in ccemux
 local MAX_CHUNK_SIZE = 512 - 1 -- 1 bytes for header
 
-local CurrentBuferID = 0
+local CurrentBufferID = 0
 
 local function ws_chunkedSend(baseSend, data, isBinary)
-    local bufID = CurrentBuferID
-    CurrentBuferID = (CurrentBuferID + 1) % (MAX_BUFFER_ID + 1)
+    local bufID = CurrentBufferID
+    CurrentBufferID = (CurrentBufferID + 1) % (MAX_BUFFER_ID + 1)
 
     local chunks = {}
     if #data >= MAX_CHUNK_SIZE then
@@ -52,6 +45,13 @@ end
 local function yield()
     os.queueEvent("yield")
     os.pullEvent("yield")
+end
+
+local function termPrint(target, s)
+    local old = term.current()
+    term.redirect(target)
+    print(s)
+    term.redirect(old)
 end
 
 local function shallowcopy(orig)
